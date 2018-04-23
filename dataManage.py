@@ -10,11 +10,13 @@ import random
 
 # 데이터 구조에 입력 
 D = []  # D[] = 당청번호 데이터
+DD = []  # DD[] = 당청번호 데이터
 K = []  # K[] = 당청번호별 가중치
 B = []  # B[] = 빌드 데이터
 C = []  # C[] = 완성 데이터
 CR = [] # CR[] = 제외수 미적용 
 E = []  # E[] = 제외수
+ES = []
 EA = [] # EA[] = 제외수 전체 
 CL = [] # CL[] = 제외수 포함한 리스트
 LN = [] # 추천숫자 제한
@@ -28,17 +30,22 @@ EXCEP = 10 # 제외수 범위
 MAX = 6 # 셈플링 공략개수 , 6이상 수 
 WEEK = 5 # 최근 몇주간 번호 제외
 
-WON = 50000
+WON = 20000
 GAME = WON / 1000 # 게임 개수
-ESUM = 3 # 최근 출현 횟수가 1번인 수의 합 
-AE = 10 # 선택숫자 추천횟수 제한 
+AE = 20 # 선택숫자 추천횟수 제한 
+
+SIM = 500 # 시뮬레이션 회차
+LD = []  # 최신데이터  
+
+INCOME = 0
+
+TOTAL_INCOME = 0
+TOTAL_COST = 0
 
 # 적용 알고리즘
 aa = 1  # 1 제외수 삽입, 2 빈출별 정렬
 
 div = []
-#803,5,9,14,26,30,43,2
-
 
 def update_progress(workdone):
     print("\r Progress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100)), 
@@ -108,7 +115,6 @@ def except_number() :
 	global K,D
 	ee = [] # week 빈출 임시변수 
 	r = [] # week범위 자주 빈출 숫자 
-
 	for dd in D[:WEEK]:
 		ee.append(dd[2:8])
 
@@ -133,65 +139,11 @@ def valid_extract_number():
 def init_limited_number():
 	count_num = []
 	cnt = 1
-	while cnt < 45:
+	while cnt < 46:
 		count_num.append([cnt, 0])
 		cnt += 1
 
 	return count_num
-
-def core_number():
-	ai = []
-	nr = []
-	kkt = []
-	kk = []
-	eea = []
-	need = 0
-	cnt = 0
-	
-	ai = filter(lambda x:x[:][1] != 0, E)	
-	ai.sort(key=lambda x:x[1], reverse=False)
-
-	need = 0 if 6-len(C)<=0 else 6-len(C) 
-	ai = filter(lambda x:x[:][0] in CR, ai)
-
-	nr = C[:]
-	for aii in ai[:need]:
-		nr.append(aii[0])	
-
-	ee = E[:]
-	ee.sort(key=lambda x:x[:][1], reverse=False)
-	ee = filter(lambda x:x[:][0] not in nr, ee)
-	
-	ttmp = []
-
-	while cnt < 45:
-		ein = filter(lambda x:x[:][1] == cnt, ee)
-		if(len(ein) == 0): 
-			break 
-
-		for einn in ein:
-			kkk = filter(lambda x:x[:][0] == einn[0], K)[0]
-			kkt.append(kkk)
-
-		kkt.sort(key=lambda x:x[:][1], reverse=True)
-		eea.extend([x[0] for x in kkt])
-
-		ttmp.extend([x for x in kkt])
-
-		kkt = []
-
-		cnt += 1
-
-	# nrr = nr[:]
-	# ttmp.sort(key=lambda x:x[:][1], reverse=True)
-	# ttmp = [x[0] for x in ttmp]
-	# nrr.extend(ttmp)
-
-	nr.extend(eea)
-
-	# print(nrr)
-	print(nr)
-	return nr
 
 def make_pattern():
 	ok = [0, 0, 0, 0, 0, 0]
@@ -207,61 +159,6 @@ def make_pattern():
 	elif(tt > 36 and tt <= 45):
 		ok[4] = 1
 	pass
-
-def check_sum(t):
-	cs = 0
-	
-	for tt in t:
-		tmp = filter(lambda x:x[:][0] == tt, E)
-		if(tmp[0][1] == 1):
-			cs += 1
-
-	if(cs == ESUM):
-		return True
-	else: 
-		return False
-
-def limited_number(t):
-	for tt in t:
-		LN[tt-1][1] = LN[tt-1][1] + 1
-		if (LN[tt-1][1] > AE): 
-			return False
-	return True
-
-def make_game_list_a1(nr):
-	global CL
-	cnt = 0
-	cl = []
-
-	# 순열
-	# p = list(combinations(nr[: 20 if GAME > 20 else 10],6))
-	p = list(combinations(nr,6))
-	print('TOTAL :', len(p), 'CREAT :', GAME)
-
-	while True:
-		t = list(p[cnt][:])	
-		t.sort()
-		# print(t)
-		if(t not in cl):
-			# if(check_sum(t) == True):
-			# if(limited_number(t) == True):
-			cl.append(t)
-			pass
-
-		# if(div == t): 
-		# 	print(cnt)
-		# 	break
-			
-		cnt += 1
-
-		if(len(cl) > GAME or len(p) <= cnt):
-		# if(len(p) <= cnt):
-			break
-
-	CL = cl[:GAME]
-
-def aa_insert_recommend_number():
-	make_game_list_a1(core_number())
 
 def make_game_list_a2(nr):
 	global CL
@@ -289,69 +186,342 @@ def make_game_list_a2(nr):
 def aa_cycle_number():
 	make_game_list_a2(core_number())
 
+def core_number():
+	ai = []
+	nr = []
+	kkt = []
+	kk = []
+	eea = []
+	need = 0
+	cnt = 0
+	
+	ai = filter(lambda x:x[:][1] != 0, E)	
+	ai.sort(key=lambda x:x[1], reverse=False)
+
+	need = 0 if 6-len(C)<=0 else 6-len(C) 
+	ai = filter(lambda x:x[:][0] in CR, ai)
+
+	nr = C[:]
+	# for aii in ai[:need]:
+	# 	nr.append(aii[0])	
+
+	ee = E[:]
+	ee.sort(key=lambda x:x[:][1], reverse=False)
+	ee = filter(lambda x:x[:][0] not in nr, ee)
+
+	tcnt = 0
+
+	while cnt < 45:
+		ein = filter(lambda x:x[:][1] == cnt, ee)
+		tcnt += len(ein)
+		if(tcnt == 45): 
+			break 
+
+		for einn in ein:
+			kkk = filter(lambda x:x[:][0] == einn[0], K)[0]
+			kkt.append(kkk)
+
+		kkt.sort(key=lambda x:x[:][1], reverse=True)
+		eea.extend([x[0] for x in kkt])
+
+		kkt = []
+
+		cnt += 1
+
+	nr.extend(eea)
+
+	print 'c', len(nr), nr
+	return nr
+
+def make_combination(nr):
+	p = nr[:]
+	pos0 = 0
+	pos1 = 0
+	pos2 = 0
+	cnt = 0
+
+	for nrr in nr:
+		tmp = filter(lambda x:x[:][0] == nrr, ES)[0][1]
+		if (tmp == 0):
+			pos0 = cnt
+		elif (tmp == 1):
+			pos1 = cnt
+		elif (tmp == 2):
+			pos2 = cnt
+		cnt += 1
+
+	cnt = 0
+	p0 = list(combinations(nr[:pos0],3))
+	p1 = list(combinations(nr[pos0:pos2],2))
+	p2 = list(combinations(nr[pos2:],1))
+	
+	p0 = [list(i) for i in p0]	
+	p1 = [list(i) for i in p1]	
+	p2 = [list(i) for i in p2]	
+
+	tmp = p0[10].extend(p1[10])
+	print len(p0), len(p1), len(p2) 
+	print p2
+
+	while True:
+		if (len(p0) < cnt or len(p1) < cnt or len(p2) < cnt ):
+			# p.append(p0[cnt].extend(p1[cnt]).extend(p2[cnt]))
+			break
+
+		cnt += 1
+
+	p = list(combinations(nr,6))
+	return p
+
+def limited_number(t, cl):
+	ln = init_limited_number()
+
+	for cll in cl:
+		for tt in t:
+			if(tt in cll):
+				ln[tt-1][1] += 1
+				if(ln[tt-1][1] > AE):
+					return False
+	return True
+
+def make_game_list_a1(nr):
+	global CL, LN
+	cnt = 0
+	cl = []
+
+	# 순열
+	# p = list(permutations(nr[: 20 if GAME > 20 else 10],6))
+	p = list(combinations(nr,6))
+	# p = make_combination(nr)
+
+	print('TOTAL :', len(p), 'CREAT :', GAME)
+	
+	while True:
+		t = list(p[cnt][:])	
+		t.sort()
+
+		if(t not in cl):
+			if (limited_number(t, cl) == True):
+				cl.append(t)
+				print ('.'),
+
+			# if(div == t):
+			# 	print 'WINWINWIN', cnt	
+		cnt += 1
+
+		if(len(cl) > GAME or len(p) <= cnt):
+		# if(len(p) <= cnt):
+			# print 'cnt', cnt, LN
+			print ('.')
+			break
+
+	CL = cl[:GAME]
+
+def weight_number(co):
+	global ES, K
+
+	p0 = []
+	p1 = []
+	p2 = []
+	w = co[:]
+
+	tmp = filter(lambda x:x[:][1] == 0, ES)
+	for tmpp in tmp:
+		p0.append([tmpp[0], filter(lambda x:x[:][0] == tmpp[0], K)[0][1]])
+
+	p0.sort(key=lambda x:x[1], reverse=True)
+	p0 = [x[0] for x in p0]	
+	p0 = [x for x in p0 if x not in w[:len(C)]]
+
+	tmp = filter(lambda x:x[:][1] == 1, ES)
+	for tmpp in tmp:
+		p1.append([tmpp[0], filter(lambda x:x[:][0] == tmpp[0], K)[0][1]])
+
+	p1.sort(key=lambda x:x[1], reverse=True)
+	p1 = [x[0] for x in p1]	
+
+	tmp = filter(lambda x:x[:][1] == 2, ES)
+	for tmpp in tmp:
+		p2.append([tmpp[0], filter(lambda x:x[:][0] == tmpp[0], K)[0][1]])
+
+	p2.sort(key=lambda x:x[1], reverse=True)
+	p2 = [x[0] for x in p2]	
+
+	w =  p0 + p1 + p2 
+
+	# mv = len(co) 
+	# ld = map(int, LD[0][2:8])
+	# for ldd in ld:
+	# 	if(co.index(ldd) < mv):
+	# 		mv = co.index(ldd)
+	
+	# w = co[mv:]	
+
+	print 'w', len(w), w
+
+	return w 
+
+def aa_insert_recommend_number():
+	core = core_number()
+	core = weight_number(core)
+	make_game_list_a1(core)
+
 ## main 
 
-print('SAMPLING : ', MAX)
-print('ORDER BY : ', 'LOW FREQUENT' if rev else 'HIGH FREQUENT')
+def main():
+	global D,DD,K,B,C,CR,E,EA,ES,CL,LN 
+	global rev, EXCEP, MAX, WEEK, WON, INCOME, GAME, AE, SIM, LD, aa, div
+	global TOTAL_INCOME, TOTAL_COST 
+
+	i = 0
+	K = []  # K[] = 당청번호별 가중치
+	B = []  # B[] = 빌드 데이터	
+	C = []  # C[] = 완성 데이터
+	CR = [] # CR[] = 제외수 미적용 
+	E = []  # E[] = 제외수
+	ES = []
+	EA = [] # EA[] = 제외수 전체 
+	CL = [] # CL[] = 제외수 포함한 리스트
+	LN = [] # 추천숫자 제한
+
+	INCOME = 0
+
+	# 적용 알고리즘
+	aa = 1  # 1 제외수 삽입, 2 빈출별 정렬
+
+	div = []
+
+	D = DD[len(DD) - SIM+1:]
+	if (len(DD) >= SIM):
+		tmp = map(int,DD[len(DD) - SIM:len(DD) - SIM+1][0])
+		print('SIMULATION : ',tmp[1])
+		div = tmp[2:8]
+
+	print('SAMPLING : ', MAX)
+	print('ORDER BY : ', 'LOW FREQUENT' if rev else 'HIGH FREQUENT')
+
+	LD = DD[len(DD) - SIM + 1:]
+	print('LAST DATA : ',LD[0])
+
+	# K 가중치 구하기
+	while i < 45:
+		i += 1
+		K.append([i, get_weight(i)])
+
+	# 회차별 당청번호
+	# print(D)
+
+	# 변호별 가중치 정렬
+	K.sort(key=lambda x: x[1], reverse=rev)
+	# print(K)
+
+	# 샘플링 갯수로 추천수 
+	CR = [[c[0]] for c in K[:MAX]]
+	CR = flat_dimension(CR)
+	# print(CR)
+
+	LN = init_limited_number()
+
+	# 최근 몇주 당청번회 제외
+	except_number()
+
+	print('RECOMMAND : ', CR)
+	print('EXCEPT ALL : ',str(WEEK) + ' week(s)', EA)	
+	ES = E[:]
+	ES.sort(key=lambda x:x[:][1], reverse=False)
+	print('EXCEPT : ',str(WEEK) + ' week(s)', ES)	
+
+	print
+	print('CHOICE NUMBER : ', C)	
+	print('COST : ', WON)	
+	print('WIN', div)
+	print
+
+	if (aa == 1):
+		print('### CHOICE LIST 필요수 삽입순열 ###')
+		aa_insert_recommend_number()
+	elif(aa == 2):
+		print('### CHOICE LIST 빈출별 정렬 ###')
+		aa_cycle_number()
+
+	cnt = 0
+	for cl in CL:
+		tmp = filter(lambda x:x == cl, div)
+		if(len(tmp) == 0):
+			cnt+= 1
+			ttmp = len(set(cl).intersection(div))
+			if(ttmp == 3): 
+				ttmp = '5 WIN'
+				INCOME += 5000
+				print(cnt, cl, ttmp)
+			elif(ttmp == 4): 
+				ttmp = '4 WIN'
+				INCOME += 50000
+				print(cnt, cl, ttmp)
+			elif(ttmp == 5): 
+				ttmp = '3 WIN'
+				INCOME += 1300000
+				print(cnt, cl, ttmp)
+			elif(ttmp == 6):
+				ttmp = '1 WIN'
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				print('CONGRATULATION')
+				return 100
+			# else: ttmp = 'LOST'
+
+		else:
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			print('CONGRATULATION')
+			return 100
+
+	TOTAL_INCOME += INCOME
+	TOTAL_COST += WON
+
+	print '###############'
+	print 
+	print 'INCOME', INCOME
+	print 'TOTAL INCOME', TOTAL_INCOME 
+	print 'TOTAL COST', TOTAL_COST 
+	print 'PROFIT', TOTAL_INCOME - TOTAL_COST 
+	print 
+	print '###############'
+	print('### END ###') 
+	print 
 
 f = open('./excel/lotto.csv', 'r')
 rdr = csv.reader(f)
 
 for line in rdr:
     line.insert(0, int(line[0])*(-1))
-    D.append(line)
+    DD.append(line)
 f.close()  
 
-# K 가중치 구하기
-while i < 45:
-	i += 1
-	K.append([i, get_weight(i)])
+print 'START' , SIM, len(DD)
 
-# 회차별 당청번호
-# print(D)
+cnt = SIM
 
-# 변호별 가중치 정렬
-K.sort(key=lambda x: x[1], reverse=rev)
-# print(K)
-
-# 샘플링 갯수로 추천수 
-CR = [[c[0]] for c in K[:MAX]]
-CR = flat_dimension(CR)
-# print(CR)
-
-LN = init_limited_number()
-
-# 최근 몇주 당청번회 제외
-except_number()
-
-print('RECOMMAND : ', CR)
-print('EXCEPT ALL : ',str(WEEK) + ' week(s)', EA)	
-ES = E[:]
-ES.sort(key=lambda x:x[:][1], reverse=False)
-print('EXCEPT : ',str(WEEK) + ' week(s)', ES)	
-print('CHOICE NUMBER : ', C)	
-print('WIN', div)
-
-if (aa == 1):
-	print('### CHOICE LIST 필요수 삽입순열 ###')
-	aa_insert_recommend_number()
-elif(aa == 2):
-	print('### CHOICE LIST 빈출별 정렬 ###')
-	aa_cycle_number()
-
-cnt = 0
-for cl in CL:
-	tmp = filter(lambda x:x == cl, div)
-	if(len(tmp) == 0):
-		cnt+= 1
-		print(cnt, cl)
-	else:
-		print('CONGRATULATION')
-
-print('### END ###') 
-
-# for divv in div:
-# 	tmp = filter(lambda x:x == divv, CL)
-# 	print(tmp)
-	# print(len(tmp))
-	
+if(SIM > len(DD)):
+	main()
+	for cll in CL:
+		print cll
+else:
+	while cnt <= len(DD):
+		if(main() == 100):
+			break
+		cnt += 1
+		SIM = cnt
